@@ -63,3 +63,16 @@ test/types/index.js
 
 # compiled app
 dist
+
+plugins/.env
+
+.env
+/src/generated/prisma
+
+/generated/prisma
+
+/src/generated/prisma
+
+/src/generated/prisma
+
+/src/generated/prisma

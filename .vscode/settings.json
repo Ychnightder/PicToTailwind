@@ -1,0 +1,29 @@
+{
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 3306,
+            "driver": "MariaDB",
+            "name": "127.0.0.1@3306",
+            "username": "root",
+            "database": "autisme_france"
+        },
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "postgresql-ychnightder.alwaysdata.net",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "Pictotailwind",
+            "database": "ychnightder_pictotailwind",
+            "username": "ychnightder",
+            "password": "rP9UwrsiRQ94B6J"
+        }
+    ]
+}
