@@ -1,0 +1,20 @@
+### Variables globales
+@baseUrl = http://127.0.0.1:5000
+@imagePath = desktop-design-composant.png
+
+### 1. Récupérer l'historique (Pour valider que l'API répond en 200)
+GET {{baseUrl}}/conversions
+Accept: application/json
+
+###
+
+### 2. Envoyer une image pour la convertir en code HTML/Tailwind
+POST {{baseUrl}}/conversions
+Content-Type: multipart/form-data; boundary=MatierePremiere
+
+--MatierePremiere
+Content-Disposition: form-data; name="image"; filename=@{{imagePath}}
+Content-Type: image/png
+
+< ./@{{imagePath}}
+--MatierePremiere--

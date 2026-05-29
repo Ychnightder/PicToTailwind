@@ -8,20 +8,10 @@ datasource db {
 }
 
 
-// model User {
-//   id          String       @id @default(uuid())
-//   email       String       @unique
-//   createdAt   DateTime     @default(now())
-//   conversions Conversion[] // Un utilisateur peut avoir plusieurs conversions
-// }
 
 
-// model Conversion {
-//   id         String   @id @default(uuid())
-//   htmlCode   String   // Le code HTML/Tailwind généré par Groq
-//   createdAt  DateTime @default(now())
-  
-//   // Relation avec la table User
-//   userId     String
-//   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-// }
+model Conversion {
+  id        String   @id @default(uuid()) // Génère un identifiant unique automatique pour la conversion
+  htmlCode  String   // Le code HTML/Tailwind généré de manière éphémère par Groq
+  createdAt DateTime @default(now())
+}

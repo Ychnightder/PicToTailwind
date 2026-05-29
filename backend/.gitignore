@@ -76,3 +76,5 @@ plugins/.env
 /src/generated/prisma
 
 /src/generated/prisma
+
+pictotailwind-firebase-adminsdk-fbsvc-107f893a2c.json
