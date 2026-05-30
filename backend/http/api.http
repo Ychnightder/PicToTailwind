@@ -1,6 +1,5 @@
 ### Variables globales
-@baseUrl = http://127.0.0.1:5000
-@imagePath = desktop-design-composant.png
+@baseUrl = http://127.0.0.1:5000/api
 
 ### 1. Récupérer l'historique (Pour valider que l'API répond en 200)
 GET {{baseUrl}}/conversions
@@ -13,8 +12,8 @@ POST {{baseUrl}}/conversions
 Content-Type: multipart/form-data; boundary=MatierePremiere
 
 --MatierePremiere
-Content-Disposition: form-data; name="image"; filename=@{{imagePath}}
+Content-Disposition: form-data; name="image"; filename=desktop-design-nav.png
 Content-Type: image/png
 
-< ./@{{imagePath}}
+< ./desktop-design-nav.png
 --MatierePremiere--
