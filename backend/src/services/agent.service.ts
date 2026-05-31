@@ -1,7 +1,9 @@
 import { Groq } from 'groq-sdk';
-import { GROQ_SYSTEM_PROMPT, TAILWIND_EXPERT_PROMPT, GROQ_USER_PROMPT_WITH_DATA } from '../config/prompts.js';
+import { GROQ_SYSTEM_PROMPT, TAILWIND_EXPERT_PROMPT, GROQ_USER_PROMPT_WITH_DATA, TAILWIND_CORRECTOR_PROMPT } from '../config/prompts.js';
 import { imageAnalyzer } from './imageAnalyzer/analyzer.service.js';
 import { visualCritic } from './imageAnalyzer/visualCritic.service.js';
+import { ImageContext } from './context.service.js';
+
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -12,10 +14,7 @@ export const agentService = {
 	 * @param mimeType Le type MIME de l'image (ex: 'image/png')
 	 * @returns Le code HTML/Tailwind généré par Groq, nettoyé de tout bloc Markdown ou texte superflu
 	 */
-	async generateTailwindFromImage(
-		buffer: Buffer,
-		mimeType: string
-	): Promise<{ html: string; analysisReport: { dimensions: string; colorPalette: string[]; extractedTexts: string[] } }> {
+	async generateTailwindFromImage(buffer: Buffer,mimeType: string): Promise<{ html: string; analysisReport: { dimensions: string; colorPalette: string[]; extractedTexts: string[] } }> {
 		// 2. ÉTAPE D'ANALYSE LOCALE (Sharp + Tesseract)
 		// On récupère l'image optimisée et le rapport (dimensions, couleurs, textes)
 		const { processedBuffer, analysisReport } = await imageAnalyzer.analyze(buffer, mimeType);
@@ -48,13 +47,11 @@ export const agentService = {
 				{ role: 'user', content: `Optimise le design de ce code HTML en appliquant les consignes strictes :\n\n${rawHtml}` },
 			],
 			model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-			temperature: 0.10,
+			temperature: 0.5,
 			stream: false,
 		});
 
-		
 		const optimizedHtml = secondCompletion.choices[0]?.message?.content || '';
-		
 
 		// 5. Nettoyage final des guillemets et retours à la ligne
 		return {
@@ -85,52 +82,51 @@ export const agentService = {
 		);
 	},
 
-	async generatePerfectTailwind(buffer: Buffer, mimeType: string): Promise<string> {
+	async generatePerfectTailwind(buffer: Buffer, mimeType: string, context: ImageContext): Promise<string> {
 		const MAX_RETRIES = 5;
-		const TARGET_SCORE = 97; // On vise 92% (100% est impossible à cause de l'anti-aliasing)
+		const TARGET_SCORE = 92; // On vise 92% (100% est impossible à cause de l'anti-aliasing)
 
 		// console.log('🚀 Étape 1 : Génération initiale par Groq...');
 		// C'est ton code actuel qui génère le premier jet
 		// Dans ton agentService, quand tu appelles le critique :
-		let { html: currentHtml, analysisReport } = await this.generateTailwindFromImage(buffer, mimeType);
+		let { html: currentHtml } = await this.generateTailwindFromImage(buffer, mimeType);
 
-		const rawDimensions = analysisReport.dimensions || '1024x768'; // Fallback de sécurité
-		const [w, h] = rawDimensions.split('x').map(n => parseInt(n.trim(), 10));
-
-		// VÉRIFICATION CRITIQUE : Si le parsing a échoué, on force des valeurs par défaut
-		const finalWidth = isNaN(w) ? 1440 : w;
-		const finalHeight = isNaN(h) ? 1029 : h;
-
-		console.log(`[Debug] Viewport calculé : ${finalWidth}x${finalHeight}`);
 
 		let bestHtml = currentHtml;
 		let bestScore = 0;
 		// LA BOUCLE DE RÉTROACTION
+		
 		for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
 			console.log(`\n🔍 Évaluation visuelle (Essai ${attempt}/${MAX_RETRIES})...`);
 
 			const isLastAttempt = attempt === MAX_RETRIES;
 
-			const evaluation = await visualCritic.evaluate(currentHtml, buffer, finalWidth, finalHeight, isLastAttempt);
+			const evaluation = await visualCritic.evaluate(currentHtml, buffer, context.width, context.height, isLastAttempt);
+
 			console.log(`📊 Score de ressemblance visuelle : ${evaluation.score}%`);
 
 			// On sauvegarde toujours la meilleure version trouvée
 			if (evaluation.score > bestScore) {
 				bestScore = evaluation.score;
 				bestHtml = currentHtml;
+			} else if (evaluation.score < bestScore) {
+				console.log(`📉 Régression détectée ! L'IA a dégradé le résultat. Annulation de la modif...`);
+				// On écrase le mauvais code par le meilleur code connu avant de redemander à l'IA
+				currentHtml = bestHtml;
 			}
 
 			// Si on a atteint la limite d'essais, on arrête les frais
 			if (evaluation.score >= TARGET_SCORE) {
 				console.log(`🎉 Score cible atteint (${evaluation.score}%) !`);
-				await visualCritic.evaluate(currentHtml, buffer, finalWidth, finalHeight, true); // Sauvegarde finale
+				await visualCritic.evaluate(currentHtml, buffer, context.width, context.height, true); // Sauvegarde finale
 				return currentHtml;
 			}
 
 			// 2. SI ON A ÉCHOUÉ MAIS PAS FINI : On demande la correction
 			if (!isLastAttempt) {
 				console.log("🛠️ Qualité insuffisante. Appel à l'IA pour correction...");
-				currentHtml = await this.askGroqToFix(currentHtml, evaluation.diffBuffer);
+				const isRollback = evaluation.score < bestScore;
+				currentHtml = await this.askGroqToFix(currentHtml, evaluation.diffBuffer, isRollback);
 			} else {
 				console.log("⚠️ Limite d'essais atteinte. On retourne la meilleure version trouvée.");
 			}
@@ -142,24 +138,35 @@ export const agentService = {
 	/**
 	 * L'agent de correction : il regarde l'image Diff et corrige le code
 	 */
-	async askGroqToFix(currentHtml: string, diffImageBuffer: Buffer): Promise<string> {
+	async askGroqToFix(currentHtml: string, diffImageBuffer: Buffer, isRollback: boolean): Promise<string> {
+
+
+		let instructions = TAILWIND_CORRECTOR_PROMPT;
+
+		if (isRollback) {
+			instructions +=
+				' ATTENTION : Ta précédente tentative a empiré le résultat (les marges ou les tailles ont explosé). Fais des micro-ajustements très subtils cette fois-ci (ex: p-2 au lieu de p-4, ou ajuste simplement les textes/couleurs) sans bouleverser la structure.';
+		}
 		const fixCompletion = await groq.chat.completions.create({
 			messages: [
 				{
 					role: 'system',
-					content:
-						"Tu es un expert développeur Tailwind CSS spécialisé dans le pixel-perfect. Ton rôle est de corriger le rendu visuel d'un composant en comparant une image 'Diff' (où les zones ROUGES indiquent des erreurs de style) avec le code HTML fourni.\n\nOBJECTIF : Ajuster les classes utilitaires Tailwind pour supprimer les zones rouges de l'image.\n\nCONTRAINTES STRICTES :\n1. PRÉSERVATION ABSOLUE : Ne modifie JAMAIS les classes de couleurs arbitraires (ex: bg-[#d2e6dc] ou color-[#...]). Elles sont critiques pour la charte graphique.\n2. STRUCTURE : Conserve strictement la structure HTML et les données (texte, attributs). Ne modifie que les classes de layout (flex, grid, gap, padding, margin, size).\n3. MÉTHODOLOGIE : Analyse la position des zones rouges par rapport aux éléments HTML pour identifier si le problème vient d'un manque de flex/grid, d'un mauvais padding, ou d'une mauvaise largeur/hauteur.\n4. FORMAT : Renvoie UNIQUEMENT le code HTML brut. AUCUN bloc markdown (pas de ```html), AUCUNE explication, AUCUN commentaire. Le code doit être prêt à être injecté directement.",
+					content: instructions,
 				},
 				{
 					role: 'user',
 					content: [
 						{ type: 'text', text: `Voici le code actuel généré, corrige-le :\n${currentHtml}` },
 						{ type: 'image_url', image_url: { url: `data:image/png;base64,${diffImageBuffer.toString('base64')}` } },
+						{
+							type: 'text',
+							text: `L'image Diff montre en rouge les zones qui ne correspondent pas à la maquette originale. Analyse attentivement ces zones pour identifier les erreurs de layout (flex/grid), de spacing (padding/margin), ou de taille (width/height). Corrige uniquement les classes utilitaires Tailwind liées au layout, au spacing, et à la taille. NE TOUCHE PAS aux classes de couleurs arbitraires (ex: bg-[#d2e6dc]) qui sont critiques pour la charte graphique. Conserve strictement la structure HTML et le contenu textuel. Renvoie uniquement le code HTML corrigé, sans aucun bloc markdown ni explication.`,
+						},
 					],
 				},
 			],
 			model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-			temperature: 0.1, // Très faible pour éviter qu'il casse ce qui marche
+			temperature: isRollback ? 0.3 : 0.1,
 		});
 
 		return this.cleanStringFormat(fixCompletion.choices[0]?.message?.content || currentHtml);
