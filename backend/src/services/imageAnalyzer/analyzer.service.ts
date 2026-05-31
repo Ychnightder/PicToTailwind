@@ -14,6 +14,9 @@ export const imageAnalyzer = {
 
 		// // console.log('📐 Dimensions originales :', metadata.width, 'x', metadata.height);
 
+		const width = metadata.width || 1024;
+		const height = metadata.height || 768;
+
 		const processedBuffer = await image.resize({ width: 1400, withoutEnlargement: true }).normalize().toBuffer();
 
 		// 2. EXTRACTION DE LA PALETTE (Median Cut Quantization)
@@ -83,7 +86,7 @@ export const imageAnalyzer = {
 		return {
 			processedBuffer,
 			analysisReport: {
-				dimensions: `${metadata.width || 0}x${metadata.height || 0}px`,
+				dimensions: `${width}x${height}`,
 				colorPalette,
 				extractedTexts: cleanTexts,
 			},

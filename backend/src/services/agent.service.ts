@@ -12,7 +12,10 @@ export const agentService = {
 	 * @param mimeType Le type MIME de l'image (ex: 'image/png')
 	 * @returns Le code HTML/Tailwind généré par Groq, nettoyé de tout bloc Markdown ou texte superflu
 	 */
-	async generateTailwindFromImage(buffer: Buffer, mimeType: string): Promise<string> {
+	async generateTailwindFromImage(
+		buffer: Buffer,
+		mimeType: string
+	): Promise<{ html: string; analysisReport: { dimensions: string; colorPalette: string[]; extractedTexts: string[] } }> {
 		// 2. ÉTAPE D'ANALYSE LOCALE (Sharp + Tesseract)
 		// On récupère l'image optimisée et le rapport (dimensions, couleurs, textes)
 		const { processedBuffer, analysisReport } = await imageAnalyzer.analyze(buffer, mimeType);
@@ -45,14 +48,19 @@ export const agentService = {
 				{ role: 'user', content: `Optimise le design de ce code HTML en appliquant les consignes strictes :\n\n${rawHtml}` },
 			],
 			model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-			temperature: 0.5,
+			temperature: 0.10,
 			stream: false,
 		});
 
+		
 		const optimizedHtml = secondCompletion.choices[0]?.message?.content || '';
+		
 
 		// 5. Nettoyage final des guillemets et retours à la ligne
-		return this.cleanStringFormat(optimizedHtml);
+		return {
+			html: this.cleanStringFormat(optimizedHtml),
+			analysisReport: analysisReport, // On retourne aussi le rapport d'analyse pour la critique visuelle
+		};
 	},
 
 	/**
@@ -79,24 +87,31 @@ export const agentService = {
 
 	async generatePerfectTailwind(buffer: Buffer, mimeType: string): Promise<string> {
 		const MAX_RETRIES = 5;
-		// const TARGET_SCORE = 92; // On vise 92% (100% est impossible à cause de l'anti-aliasing)
+		const TARGET_SCORE = 97; // On vise 92% (100% est impossible à cause de l'anti-aliasing)
 
-		console.log('🚀 Étape 1 : Génération initiale par Groq...');
+		// console.log('🚀 Étape 1 : Génération initiale par Groq...');
 		// C'est ton code actuel qui génère le premier jet
-		let currentHtml = await this.generateTailwindFromImage(buffer, mimeType);
+		// Dans ton agentService, quand tu appelles le critique :
+		let { html: currentHtml, analysisReport } = await this.generateTailwindFromImage(buffer, mimeType);
+
+		const rawDimensions = analysisReport.dimensions || '1024x768'; // Fallback de sécurité
+		const [w, h] = rawDimensions.split('x').map(n => parseInt(n.trim(), 10));
+
+		// VÉRIFICATION CRITIQUE : Si le parsing a échoué, on force des valeurs par défaut
+		const finalWidth = isNaN(w) ? 1440 : w;
+		const finalHeight = isNaN(h) ? 1029 : h;
+
+		console.log(`[Debug] Viewport calculé : ${finalWidth}x${finalHeight}`);
 
 		let bestHtml = currentHtml;
 		let bestScore = 0;
-		let isFinal = false;
 		// LA BOUCLE DE RÉTROACTION
 		for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
 			console.log(`\n🔍 Évaluation visuelle (Essai ${attempt}/${MAX_RETRIES})...`);
 
-			if (attempt === MAX_RETRIES) {
-				isFinal = true; // Dernier essai, on va forcer l'évaluation finale même si c'est pas parfait
-			}
+			const isLastAttempt = attempt === MAX_RETRIES;
 
-			const evaluation = await visualCritic.evaluate(currentHtml, buffer, 1024, 768, isFinal);
+			const evaluation = await visualCritic.evaluate(currentHtml, buffer, finalWidth, finalHeight, isLastAttempt);
 			console.log(`📊 Score de ressemblance visuelle : ${evaluation.score}%`);
 
 			// On sauvegarde toujours la meilleure version trouvée
@@ -105,22 +120,20 @@ export const agentService = {
 				bestHtml = currentHtml;
 			}
 
-			// Si c'est assez bon, on casse la boucle et on renvoie le code
-			// if (evaluation.score >= TARGET_SCORE) {
-			// 	console.log('✅ Objectif visuel atteint !');
-			// 	isFinal = true;
-			// 	break;
-			// }
-
 			// Si on a atteint la limite d'essais, on arrête les frais
-			if (attempt === MAX_RETRIES) {
-				console.log("⚠️ Limite d'essais atteinte. On garde la meilleure version.");
-				isFinal = true;
-				break;
+			if (evaluation.score >= TARGET_SCORE) {
+				console.log(`🎉 Score cible atteint (${evaluation.score}%) !`);
+				await visualCritic.evaluate(currentHtml, buffer, finalWidth, finalHeight, true); // Sauvegarde finale
+				return currentHtml;
 			}
 
-			console.log("🛠️ Qualité insuffisante. Appel à l'IA pour correction...");
-			currentHtml = await this.askGroqToFix(currentHtml, evaluation.diffBuffer);
+			// 2. SI ON A ÉCHOUÉ MAIS PAS FINI : On demande la correction
+			if (!isLastAttempt) {
+				console.log("🛠️ Qualité insuffisante. Appel à l'IA pour correction...");
+				currentHtml = await this.askGroqToFix(currentHtml, evaluation.diffBuffer);
+			} else {
+				console.log("⚠️ Limite d'essais atteinte. On retourne la meilleure version trouvée.");
+			}
 		}
 
 		return bestHtml;
@@ -135,7 +148,7 @@ export const agentService = {
 				{
 					role: 'system',
 					content:
-						"Tu es un expert Tailwind. Ton objectif est de corriger le code HTML fourni. Je vais te donner une image 'Diff' : tout ce qui est en ROUGE sur cette image représente tes erreurs (mauvais espacement, mauvaise taille, mauvais alignement). Ajuste le code HTML pour corriger ces zones rouges.    RÈGLES STRICTES :  1. Ne change pas la structure globale du code, concentre-toi sur les détails de style.  2. Utilise les classes Tailwind pour faire les ajustements nécessaires.  3. Ne génère aucun texte explicatif, renvoie uniquement le code corrigé.  4. Ne mets pas ton code dans des blocs markdown.",
+						"Tu es un expert développeur Tailwind CSS spécialisé dans le pixel-perfect. Ton rôle est de corriger le rendu visuel d'un composant en comparant une image 'Diff' (où les zones ROUGES indiquent des erreurs de style) avec le code HTML fourni.\n\nOBJECTIF : Ajuster les classes utilitaires Tailwind pour supprimer les zones rouges de l'image.\n\nCONTRAINTES STRICTES :\n1. PRÉSERVATION ABSOLUE : Ne modifie JAMAIS les classes de couleurs arbitraires (ex: bg-[#d2e6dc] ou color-[#...]). Elles sont critiques pour la charte graphique.\n2. STRUCTURE : Conserve strictement la structure HTML et les données (texte, attributs). Ne modifie que les classes de layout (flex, grid, gap, padding, margin, size).\n3. MÉTHODOLOGIE : Analyse la position des zones rouges par rapport aux éléments HTML pour identifier si le problème vient d'un manque de flex/grid, d'un mauvais padding, ou d'une mauvaise largeur/hauteur.\n4. FORMAT : Renvoie UNIQUEMENT le code HTML brut. AUCUN bloc markdown (pas de ```html), AUCUNE explication, AUCUN commentaire. Le code doit être prêt à être injecté directement.",
 				},
 				{
 					role: 'user',

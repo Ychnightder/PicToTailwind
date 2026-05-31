@@ -1,19 +1,39 @@
 ### Variables globales
 @baseUrl = http://127.0.0.1:5000/api
 
-### 1. Récupérer l'historique (Pour valider que l'API répond en 200)
-GET {{baseUrl}}/conversions
-Accept: application/json
 
-###
-
-### 2. Envoyer une image pour la convertir en code HTML/Tailwind
+### 1. Envoyer une image pour la convertir en code HTML/Tailwind
 POST {{baseUrl}}/conversions
 Content-Type: multipart/form-data; boundary=MatierePremiere
 
 --MatierePremiere
-Content-Disposition: form-data; name="image"; filename=desktop-design-nav.png
+Content-Disposition: form-data; name="image"; filename=advice.png
 Content-Type: image/png
 
-< ./desktop-design-nav.png
+< ./img/advice.png
+--MatierePremiere--
+
+
+
+### 1. Envoyer une image pour la convertir en code HTML/Tailwind
+POST {{baseUrl}}/conversions
+Content-Type: multipart/form-data; boundary=MatierePremiere
+
+--MatierePremiere
+Content-Disposition: form-data; name="image"; filename=maquette.png
+Content-Type: image/png
+
+< ./img/maquette.png
+--MatierePremiere--
+
+
+### 1. Envoyer une image pour la convertir en code HTML/Tailwind
+POST {{baseUrl}}/conversions
+Content-Type: multipart/form-data; boundary=MatierePremiere
+
+--MatierePremiere
+Content-Disposition: form-data; name="image"; filename=input.png
+Content-Type: image/png
+
+< ./img/input.png
 --MatierePremiere--
