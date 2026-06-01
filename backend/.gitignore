@@ -76,3 +76,11 @@ plugins/.env
 /src/generated/prisma
 
 /src/generated/prisma
+
+google
+
+./debug
+
+debug
+
+fra.traineddata

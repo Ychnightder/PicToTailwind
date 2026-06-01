@@ -1,0 +1,39 @@
+### Variables globales
+@baseUrl = http://127.0.0.1:5000/api
+
+
+### 1. Envoyer une image pour la convertir en code HTML/Tailwind
+POST {{baseUrl}}/conversions
+Content-Type: multipart/form-data; boundary=MatierePremiere
+
+--MatierePremiere
+Content-Disposition: form-data; name="image"; filename=advice.png
+Content-Type: image/png
+
+< ./img/advice.png
+--MatierePremiere--
+
+
+
+### 1. Envoyer une image pour la convertir en code HTML/Tailwind
+POST {{baseUrl}}/conversions
+Content-Type: multipart/form-data; boundary=MatierePremiere
+
+--MatierePremiere
+Content-Disposition: form-data; name="image"; filename=maquette.png
+Content-Type: image/png
+
+< ./img/maquette.png
+--MatierePremiere--
+
+
+### 1. Envoyer une image pour la convertir en code HTML/Tailwind
+POST {{baseUrl}}/conversions
+Content-Type: multipart/form-data; boundary=MatierePremiere
+
+--MatierePremiere
+Content-Disposition: form-data; name="image"; filename=input.png
+Content-Type: image/png
+
+< ./img/input.png
+--MatierePremiere--
