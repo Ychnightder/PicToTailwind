@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+backend/google/pictotailwind-firebase-adminsdk-fbsvc-107f893a2c.json
+backend/fra.traineddata
+backend/debug
