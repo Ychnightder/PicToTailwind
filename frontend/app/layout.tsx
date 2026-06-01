@@ -31,7 +31,7 @@ export default function RootLayout({children,}: Readonly<{children: React.ReactN
 				</header>
 
 				{/* Contenu principal injecté ici */}
-				<main className="flex-1 container mx-auto px-4 py-8">{children}</main>
+				<main className="flex-1 container mx-auto  py-8">{children}</main>
 
 				{/* Footer simple */}
 				<footer className="border-t bg-slate-50 py-6 text-center text-sm text-slate-500">Propulsé par Fastify, Puppeteer & Groq.</footer>

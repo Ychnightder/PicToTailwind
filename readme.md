@@ -14,7 +14,7 @@ Le projet est divisé en deux entités indépendantes pour garantir une scalabil
 * **`/backend` :** Serveur API haute performance développé en **Node.js & TypeScript** qui orchestre le traitement d'image, la file d'attente distribuée et l'interconnexion avec les modèles de vision.
 
 ```text
- [Client Next.js] ──(Upload Image)──> [API Node.js/TS] ──(Push Job)──> [BullMQ / Redis]
-        ▲                                                                       │ (Worker)
-        │                                                                       ▼
- [Rendu Live HTML] <──(Retourne Code JSON)── [Supabase DB] <──(Fini)── [Groq Vision API]
+ [Client Next.js] ──(Upload Image)──> [API Node.js/TS] 
+        ▲                                         │                                 
+        │                                         ▼                              
+ [Rendu Live HTML] <──(Retourne Code JSON)── [Groq Vision API] 
