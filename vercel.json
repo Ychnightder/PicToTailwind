@@ -4,16 +4,8 @@
 			"root": "frontend",
 			"routePrefix": "/",
 			"framework": "nextjs"
-		},
-		"backend": {
-			"root": "backend",
-			"routePrefix": "/api"
 		}
-	},
-	"rewrites": [
-		{
-			"source": "/api/(.*)",
-			"destination": "/api/index.js"
-		}
-	]
+		
+	}
+	
 }
