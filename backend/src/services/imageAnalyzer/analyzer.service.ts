@@ -1,7 +1,7 @@
 import sharp from 'sharp';
-import { createWorker } from 'tesseract.js';
 // @ts-ignore - On ignore l'absence de types TypeScript pour ce paquet natif
 import quantize from 'quantize';
+import Tesseract from "tesseract.js";
 
 
 let cachedWorker: any = null;
@@ -10,7 +10,7 @@ let cachedWorker: any = null;
 async function getTesseractWorker() {
 	if (!cachedWorker) {
 		// Initialisation unique avec les chemins CDN pour éviter l'erreur WASM sur Vercel
-		cachedWorker = await createWorker('fra');
+		cachedWorker = await Tesseract.createWorker('fra');
 		console.log('🤖 Tesseract Worker initialisé et mis en cache');
 	}
 	return cachedWorker;
