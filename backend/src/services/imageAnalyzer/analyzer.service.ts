@@ -30,6 +30,16 @@ async function getTesseractWorker() {
 }
 
 
+
+
+
+
+
+
+
+
+
+
 export const imageAnalyzer = {
 	async analyze(buffer: Buffer, mimeType: string) {
 		// 1. SHARP : Normalisation de l'image de base
@@ -84,19 +94,37 @@ export const imageAnalyzer = {
 			colorPalette = ['#ffffff', '#000000']; // Fallback de sécurité
 		}
 
-		// 3. TESSERACT.JS : Extraction OCR optimisée
-		const ocrBuffer = await sharp(processedBuffer)
-			.grayscale()
-			.linear(1.5, -0.1) // Boost le contraste pour aider la lecture
-			.toBuffer();
+		const ocrBuffer = await sharp(processedBuffer).grayscale().linear(1.5, -0.1).toBuffer();
 
-		const worker = await getTesseractWorker();
+		let text = '';
 
-		const {
-			data: { text },
-		} = await worker.recognize(ocrBuffer);
-		
-		await worker.terminate();
+		try {
+			const worker = await getTesseractWorker();
+			// On tente la reconnaissance
+			const result = await worker.recognize(ocrBuffer);
+			text = result.data.text;
+		} catch (ocrError) {
+			console.warn('⚠️ Le worker Tesseract a planté ou était corrompu, tentative de réinitialisation...', ocrError);
+
+			// 🟢 ÉTAPE CRITIQUE : On nettoie et on détruit le cadavre du worker défectueux
+			try {
+				if (cachedWorker) {
+					await cachedWorker.terminate();
+				}
+			} catch (e) {
+				// On ignore si le terminate plante déjà
+			}
+
+			// On vide la variable de cache pour forcer une recréation complète
+			cachedWorker = null;
+
+			console.log('🔄 Relancement d’un nouveau Worker Tesseract...');
+			const freshWorker = await getTesseractWorker();
+
+			// Deuxième tentative avec le worker tout neuf
+			const result = await freshWorker.recognize(ocrBuffer);
+			text = result.data.text;
+		}
 
 		const cleanTexts = text
 			.replace(/[“©|\[\]]/g, '') // Nettoyage des parasites visuels
