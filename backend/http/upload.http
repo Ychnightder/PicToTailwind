@@ -14,7 +14,7 @@ Content-Type: image/png
 
 ### REST Client (VSCode REST Client extension)
 # Remplacez ./debug/test-image.png par le chemin de votre image locale
-POST http://localhost:3000/api/upload
+POST http://localhost:5000/api/upload
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW

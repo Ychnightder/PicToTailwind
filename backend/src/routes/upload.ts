@@ -4,7 +4,7 @@ import { agentService } from '../services/agent.service.js';
 import { buildImageContext } from '../services/context.service.js';
 
 const uploadRoutes: FastifyPluginAsync = async (fastify): Promise<void> => {
-	fastify.post('/upload', async (request, reply) => {
+	fastify.post('/api/upload', async (request, reply) => {
 		// 1. Récupération du fichier
 		const data = await (request as any).file();
 		if (!data) return reply.status(400).send({ error: 'Aucune image fournie.' });
