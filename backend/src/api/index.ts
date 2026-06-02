@@ -1,6 +1,6 @@
 // api/index.ts
 import Fastify from 'fastify';
-import { app } from '../app.js';
+import app from "../app.js"
 
 // 1. On crée l'instance Fastify
 const fastify = Fastify({ logger: true });
