@@ -6,12 +6,12 @@ import sharp from 'sharp';
 import fs from 'fs'; 
 
 
+const isVercel = process.env.VERCEL === 'true' || process.env.NODE_ENV === 'production';
 
 
 
 // Dans ta fonction d'évaluation visuelle :
 async function launchBrowser(width: number, height: number) {
-  const isVercel = process.env.VERCEL === 'true' || process.env.NODE_ENV === 'production';
 
 	if (isVercel) {
     // Configuration obligatoire pour que ça tourne sur les serveurs de Vercel
@@ -90,13 +90,15 @@ export const visualCritic = {
 		const totalPixels = width * height;
 		const matchScore = ((totalPixels - numDiffPixels) / totalPixels) * 100;
 
-		if (isFinal) {
-			// S'assure que le dossier existe (optionnel mais recommandé)
-			if (!fs.existsSync('./debug')) fs.mkdirSync('./debug');
+		if (isVercel) {
+			if (isFinal) {
+				// S'assure que le dossier existe (optionnel mais recommandé)
+				if (!fs.existsSync('./debug')) fs.mkdirSync('./debug');
 
-			fs.writeFileSync('./debug/debug-generated.png', screenshotBuffer);
-			fs.writeFileSync('./debug/debug-target.png', sourceResizedBuffer);
-			fs.writeFileSync('./debug/debug-diff.png', PNG.sync.write(diff));
+				fs.writeFileSync('./debug/debug-generated.png', screenshotBuffer);
+				fs.writeFileSync('./debug/debug-target.png', sourceResizedBuffer);
+				fs.writeFileSync('./debug/debug-diff.png', PNG.sync.write(diff));
+			}
 		}
 
 		return {
