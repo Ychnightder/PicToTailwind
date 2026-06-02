@@ -1,0 +1,20 @@
+{
+	"version": 2,
+	"builds": [
+		{
+			"src": "app.ts",
+			"use": "@vercel/node"
+		}
+	],
+	"routes": [
+		{
+			"src": "/(.*)",
+			"dest": "app.ts"
+		}
+	],
+	"functions": {
+		"app.ts": {
+			"includeFiles": "node_modules/tesseract.js-core/tesseract-core-relaxedsimd.wasm"
+		}
+	}
+}
