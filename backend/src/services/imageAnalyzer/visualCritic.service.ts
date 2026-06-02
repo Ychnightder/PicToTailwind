@@ -1,12 +1,42 @@
 import puppeteer from 'puppeteer';
+import chromium from '@sparticuz/chromium';
 import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
 import sharp from 'sharp';
 import fs from 'fs'; 
 
+
+
+
+
+// Dans ta fonction d'évaluation visuelle :
+async function launchBrowser(width: number, height: number) {
+  const isVercel = process.env.VERCEL === 'true' || process.env.NODE_ENV === 'production';
+
+	if (isVercel) {
+    // Configuration obligatoire pour que ça tourne sur les serveurs de Vercel
+		return await puppeteer.launch({
+			args: chromium.args,
+			defaultViewport: { width: width || 1280, height: height || 720 },
+			executablePath: await chromium.executablePath(),
+			// cast to any because the chromium package's typings may not expose `headless`
+			headless: (chromium as any).headless,
+		});
+  } else {
+    // En local (Windows), on utilise l'exécutable local classique
+    // Ajuste le chemin si ton Chrome ou Edge est installé ailleurs, ou utilise puppeteer normal en local
+    return await puppeteer.launch({
+      headless: true,
+      // Si tu as installé "puppeteer" globalement ou si tu veux que puppeteer-core trouve ton Chrome local :
+      channel: 'chrome', 
+    });
+  }
+}
+
+
 export const visualCritic = {
 	async evaluate(html: string, originalImageBuffer: Buffer, width = 1024, height = 768, isFinal = false) {
-		const browser = await puppeteer.launch({ headless: true });
+		const browser = await launchBrowser(width, height);
 		const page = await browser.newPage();
 		await page.setViewport({ width, height });
 

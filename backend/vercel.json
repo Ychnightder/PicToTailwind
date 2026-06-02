@@ -8,6 +8,8 @@
 	],
 	"functions": {
 		"backend/app.ts": {
+			"memory": 2048,
+			"maxDuration": 60,
 			"includeFiles": "backend/node_modules/tesseract.js-core/tesseract-core-relaxedsimd.wasm"
 		}
 	}

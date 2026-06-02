@@ -20,6 +20,7 @@
 	"author": "",
 	"license": "ISC",
 	"dependencies": {
+		"@sparticuz/chromium": "^149.0.0",
 		"cors": "^2.8.6",
 		"dotenv": "^17.4.2",
 		"express": "^5.2.1",
@@ -29,6 +30,7 @@
 		"pixelmatch": "^7.2.0",
 		"pngjs": "^7.0.0",
 		"puppeteer": "^25.1.0",
+		"puppeteer-core": "^25.1.0",
 		"quantize": "^1.0.2",
 		"sharp": "^0.34.5",
 		"tesseract.js": "^7.0.0"
