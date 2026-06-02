@@ -19,8 +19,8 @@ const app: FastifyPluginAsync<AppOptions> = async (fastify, opts): Promise<void>
 
 	void fastify.register(cors, {
 		// origin: [process.env.URL_FRONTEND || 'http://localhost:3000'],
-		origin: true, 
-		credentials: true,
+		origin: "*", 
+		// credentials: true,
 	});
 
 	
