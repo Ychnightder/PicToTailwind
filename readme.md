@@ -18,3 +18,13 @@ Le projet est divisé en deux entités indépendantes pour garantir une scalabil
         ▲                                         │                                 
         │                                         ▼                              
  [Rendu Live HTML] <──(Retourne Code JSON)── [Groq Vision API] 
+
+```
+
+## IMAGE TEST
+
+[debug-diff](/public/debug-diff.png "debug-diff")
+
+[debug-generated](public/debug-generated.png "debug-generated")
+
+[debug-target](public/debug-target.png "debug-target")
