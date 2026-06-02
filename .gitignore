@@ -41,4 +41,3 @@ yarn-error.log*
 next-env.d.ts
 backend/google
 backend/fra.traineddata
-backend/debug
