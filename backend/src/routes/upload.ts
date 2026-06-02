@@ -1,38 +1,39 @@
-// routes/uploadRoutes.ts
-import { FastifyPluginAsync } from 'fastify';
 import { agentService } from '../services/agent.service.js';
 import { buildImageContext } from '../services/context.service.js';
+import { request, Router } from 'express';
+import multer from 'multer';
 
-const uploadRoutes: FastifyPluginAsync = async (fastify): Promise<void> => {
-	fastify.post('/api/upload', async (request, reply) => {
-		// 1. Récupération du fichier
-		const data = await (request as any).file();
-		if (!data) return reply.status(400).send({ error: 'Aucune image fournie.' });
+const uploadRoutes = Router();
 
-		try {
-			// 2. Extraction du buffer
-			const buffer = await data.toBuffer();
+const upload = multer({ storage: multer.memoryStorage() });
 
-			// 3. Création du contexte dynamique (dimensions, type)
-			const context = await buildImageContext(buffer);
-			fastify.log.info(`📸 Image détectée : ${context.width}x${context.height} (${context.type})`);
 
-			// 4. On passe le buffer ET LE CONTEXTE à l'agent !
-			const result = await agentService.generatePerfectTailwind(
-				buffer,
-				data.mimetype,
-				context // <-- NOUVEAU PARAMÈTRE !
-			);
+uploadRoutes.post('/api/upload', upload.single('image'), async (req, res) => {
+	
+	const data  = await req.file;
 
-			return reply.status(201).send({
-				success: true,
-				result: result,
-			});
-		} catch (error) {
-			fastify.log.error(error);
-			return reply.status(500).send({ error: 'Erreur lors du traitement.' });
-		}
-	});
-};
+	if (!data) return res.status(400).send({ error: 'Aucune image fournie.' });
+
+	try {
+		// 2. Extraction du buffer
+		const buffer: Buffer = data.buffer;
+
+		// 3. Création du contexte dynamique (dimensions, type)
+		const context = await buildImageContext(buffer);
+
+		// 4. On passe le buffer ET LE CONTEXTE à l'agent !
+		const result = await agentService.generatePerfectTailwind(buffer, data.mimetype, context);
+
+		return res.status(201).send({
+			success: true,
+			result: result,
+		});
+
+	} catch (error) {
+		return res.status(500).send({ error: 'Erreur lors du traitement.' });
+	}
+});
+
+
 
 export default uploadRoutes;

@@ -13,6 +13,8 @@ export async function buildImageContext(buffer: Buffer): Promise<ImageContext> {
 		const width = metadata.width || 1024;
 		const height = metadata.height || 768;
 
+		console.log(`Image dimensions: ${width}x${height}`);
+
 		return {
 			width,
 			height,
@@ -20,7 +22,6 @@ export async function buildImageContext(buffer: Buffer): Promise<ImageContext> {
 		};
 	} catch (error) {
 		console.error('Erreur lors de la lecture des métadonnées Sharp :', error);
-		// Fallback sécurisé en cas d'image corrompue
 		return { width: 1024, height: 768, type: 'desktop' };
 	}
 }

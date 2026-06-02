@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import { Groq } from 'groq-sdk';
 import { GROQ_SYSTEM_PROMPT, TAILWIND_EXPERT_PROMPT, GROQ_USER_PROMPT_WITH_DATA, TAILWIND_CORRECTOR_PROMPT } from '../config/prompts.js';
 import { imageAnalyzer } from './imageAnalyzer/analyzer.service.js';

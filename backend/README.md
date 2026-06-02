@@ -4,9 +4,9 @@
                                                        │
                                                        ▼
 [Groq API Vision] <──(4. Envoie le texte Base64)── [Fichier en mémoire]
-        │                                              │
-(5. Analyse & renvoie                                  ▼
-    le code HTML)                           (3. Sauvegarde le fichier)
-        │                                              │
-        ▼                                              ▼
-[Frontend Next.js] <──(6. Affiche le code)  [Storage Cloud / AlwaysData]
+        │                                              
+(5. Analyse & renvoie                                  
+    le code HTML)                           
+        │                                              
+        ▼                                              
+[Frontend Next.js]
