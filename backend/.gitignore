@@ -79,8 +79,4 @@ plugins/.env
 
 google
 
-./debug
-
-debug
-
 fra.traineddata
