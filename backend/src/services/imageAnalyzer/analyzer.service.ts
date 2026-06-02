@@ -10,7 +10,9 @@ let cachedWorker: any = null;
 async function getTesseractWorker() {
 	if (!cachedWorker) {
 		// Initialisation unique avec les chemins CDN pour éviter l'erreur WASM sur Vercel
-		cachedWorker = await createWorker('fra');
+		cachedWorker = await createWorker('fra', 1, {
+			corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@7/tesseract-core.wasm.js',
+		});
 		console.log('🤖 Tesseract Worker initialisé et mis en cache');
 	}
 	return cachedWorker;
