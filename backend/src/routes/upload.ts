@@ -8,7 +8,7 @@ const uploadRoutes = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 
-uploadRoutes.post('/api/upload', upload.single('image'), async (req, res) => {
+uploadRoutes.post('/api/upload', upload.single('file'), async (req, res) => {
 	
 	const data  = await req.file;
 
