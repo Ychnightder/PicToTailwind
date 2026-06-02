@@ -1,17 +1,30 @@
 import sharp from 'sharp';
+import { createWorker } from 'tesseract.js';
 // @ts-ignore - On ignore l'absence de types TypeScript pour ce paquet natif
 import quantize from 'quantize';
-import Tesseract from "tesseract.js";
-
+import path from 'node:path';
 
 let cachedWorker: any = null;
 
 
 async function getTesseractWorker() {
 	if (!cachedWorker) {
-		// Initialisation unique avec les chemins CDN pour éviter l'erreur WASM sur Vercel
-		cachedWorker = await Tesseract.createWorker('fra');
-		console.log('🤖 Tesseract Worker initialisé et mis en cache');
+		const isVercel = process.env.VERCEL === 'true' || process.env.NODE_ENV === 'production';
+
+		// On calcule dynamiquement le chemin vers le dossier tesseract.js-core (qui contient le .wasm)
+		const coreDir = isVercel
+			? path.join(process.cwd(), 'backend', 'node_modules', 'tesseract.js-core')
+			: path.join(process.cwd(), 'node_modules', 'tesseract.js-core');
+
+		console.log('📂 Dossier Core Tesseract configuré sur :', coreDir);
+
+		// Initialisation propre pour l'environnement Node.js (sans forcer les scripts browser)
+		cachedWorker = await createWorker('fra', 3, {
+			workerBlobURL: false, // 🟢 CRITIQUE : Empêche Tesseract de charger le script version "navigateur"
+			cachePath: coreDir, // 🟢 Dit à Tesseract de chercher ses fichiers .wasm directement dans ce dossier local
+		});
+
+		console.log('🤖 Tesseract Worker initialisé proprement avec la configuration Node !');
 	}
 	return cachedWorker;
 }
