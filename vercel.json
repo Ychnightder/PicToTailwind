@@ -6,22 +6,6 @@
 			"routePrefix": "/",
 			"framework": "nextjs"
 		}
-	},
-	"builds": [
-		{
-			"src": "backend/app.ts",
-			"use": "@vercel/node"
-		}
-	],
-	"routes": [
-		{
-			"src": "/api/(.*)",
-			"dest": "backend/app.ts"
-		}
-	],
-	"functions": {
-		"backend/app.ts": {
-			"includeFiles": "backend/node_modules/tesseract.js-core/tesseract-core-relaxedsimd.wasm"
-		}
 	}
+	
 }
