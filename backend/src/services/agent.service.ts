@@ -87,54 +87,58 @@ export const agentService = {
 	async generatePerfectTailwind(buffer: Buffer, mimeType: string, context: ImageContext): Promise<string> {
 		const MAX_RETRIES = 5;
 		const TARGET_SCORE = 92; // On vise 92% (100% est impossible à cause de l'anti-aliasing)
+		try {
+			// console.log('🚀 Étape 1 : Génération initiale par Groq...');
+			// C'est ton code actuel qui génère le premier jet
+			// Dans ton agentService, quand tu appelles le critique :
+			let { html: currentHtml } = await this.generateTailwindFromImage(buffer, mimeType);
 
-		// console.log('🚀 Étape 1 : Génération initiale par Groq...');
-		// C'est ton code actuel qui génère le premier jet
-		// Dans ton agentService, quand tu appelles le critique :
-		let { html: currentHtml } = await this.generateTailwindFromImage(buffer, mimeType);
+			let bestHtml = currentHtml;
+			let bestScore = 0;
+			// LA BOUCLE DE RÉTROACTION
 
+			for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+				console.log(`\n🔍 Évaluation visuelle (Essai ${attempt}/${MAX_RETRIES})...`);
 
-		let bestHtml = currentHtml;
-		let bestScore = 0;
-		// LA BOUCLE DE RÉTROACTION
-		
-		for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-			console.log(`\n🔍 Évaluation visuelle (Essai ${attempt}/${MAX_RETRIES})...`);
+				const isLastAttempt = attempt === MAX_RETRIES;
 
-			const isLastAttempt = attempt === MAX_RETRIES;
+				const evaluation = await visualCritic.evaluate(currentHtml, buffer, context.width, context.height, isLastAttempt);
 
-			const evaluation = await visualCritic.evaluate(currentHtml, buffer, context.width, context.height, isLastAttempt);
+				console.log(`📊 Score de ressemblance visuelle : ${evaluation.score}%`);
 
-			console.log(`📊 Score de ressemblance visuelle : ${evaluation.score}%`);
+				// On sauvegarde toujours la meilleure version trouvée
+				if (evaluation.score > bestScore) {
+					bestScore = evaluation.score;
+					bestHtml = currentHtml;
+				} else if (evaluation.score < bestScore) {
+					console.log(`📉 Régression détectée ! L'IA a dégradé le résultat. Annulation de la modif...`);
+					// On écrase le mauvais code par le meilleur code connu avant de redemander à l'IA
+					currentHtml = bestHtml;
+				}
 
-			// On sauvegarde toujours la meilleure version trouvée
-			if (evaluation.score > bestScore) {
-				bestScore = evaluation.score;
-				bestHtml = currentHtml;
-			} else if (evaluation.score < bestScore) {
-				console.log(`📉 Régression détectée ! L'IA a dégradé le résultat. Annulation de la modif...`);
-				// On écrase le mauvais code par le meilleur code connu avant de redemander à l'IA
-				currentHtml = bestHtml;
+				// Si on a atteint la limite d'essais, on arrête les frais
+				if (evaluation.score >= TARGET_SCORE) {
+					console.log(`🎉 Score cible atteint (${evaluation.score}%) !`);
+					await visualCritic.evaluate(currentHtml, buffer, context.width, context.height, true); // Sauvegarde finale
+					return currentHtml;
+				}
+
+				// 2. SI ON A ÉCHOUÉ MAIS PAS FINI : On demande la correction
+				if (!isLastAttempt) {
+					console.log("🛠️ Qualité insuffisante. Appel à l'IA pour correction...");
+					const isRollback = evaluation.score < bestScore;
+					currentHtml = await this.askGroqToFix(currentHtml, evaluation.diffBuffer, isRollback);
+				} else {
+					console.log("⚠️ Limite d'essais atteinte. On retourne la meilleure version trouvée.");
+				}
 			}
 
-			// Si on a atteint la limite d'essais, on arrête les frais
-			if (evaluation.score >= TARGET_SCORE) {
-				console.log(`🎉 Score cible atteint (${evaluation.score}%) !`);
-				await visualCritic.evaluate(currentHtml, buffer, context.width, context.height, true); // Sauvegarde finale
-				return currentHtml;
-			}
-
-			// 2. SI ON A ÉCHOUÉ MAIS PAS FINI : On demande la correction
-			if (!isLastAttempt) {
-				console.log("🛠️ Qualité insuffisante. Appel à l'IA pour correction...");
-				const isRollback = evaluation.score < bestScore;
-				currentHtml = await this.askGroqToFix(currentHtml, evaluation.diffBuffer, isRollback);
-			} else {
-				console.log("⚠️ Limite d'essais atteinte. On retourne la meilleure version trouvée.");
-			}
+			return bestHtml;
+		} catch (globalError: any) {
+			// 🟢 SÉCURITÉ 3 : Capturer l'erreur exacte dans la console Vercel
+			console.error("💥 Crash dans le processus d'évaluation visuelle :", globalError);
+			throw globalError; // Permet de voir le message d'erreur exact dans les logs Vercel
 		}
-
-		return bestHtml;
 	},
 
 	/**
