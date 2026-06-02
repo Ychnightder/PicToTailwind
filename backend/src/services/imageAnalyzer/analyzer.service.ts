@@ -3,6 +3,20 @@ import { createWorker } from 'tesseract.js';
 // @ts-ignore - On ignore l'absence de types TypeScript pour ce paquet natif
 import quantize from 'quantize';
 
+
+let cachedWorker: any = null;
+
+
+async function getTesseractWorker() {
+	if (!cachedWorker) {
+		// Initialisation unique avec les chemins CDN pour éviter l'erreur WASM sur Vercel
+		cachedWorker = await createWorker('fra');
+		console.log('🤖 Tesseract Worker initialisé et mis en cache');
+	}
+	return cachedWorker;
+}
+
+
 export const imageAnalyzer = {
 	async analyze(buffer: Buffer, mimeType: string) {
 		// 1. SHARP : Normalisation de l'image de base
@@ -63,7 +77,7 @@ export const imageAnalyzer = {
 			.linear(1.5, -0.1) // Boost le contraste pour aider la lecture
 			.toBuffer();
 
-		const worker = await createWorker('fra');
+		const worker = await getTesseractWorker();
 
 		const {
 			data: { text },
@@ -74,8 +88,8 @@ export const imageAnalyzer = {
 		const cleanTexts = text
 			.replace(/[“©|\[\]]/g, '') // Nettoyage des parasites visuels
 			.split('\n')
-			.map(t => t.trim())
-			.filter(t => t.length > 1);
+			.map((t : string) => t.trim())
+			.filter((t : string) => t.length > 1);
 
 		// 4. Logs
 		console.log('🖼️--- ANALYSE D’IMAGE ---🖼️');

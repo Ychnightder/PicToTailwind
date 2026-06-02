@@ -13,7 +13,7 @@ export async function buildImageContext(buffer: Buffer): Promise<ImageContext> {
 		const width = metadata.width || 1024;
 		const height = metadata.height || 768;
 
-		console.log(`Image dimensions: ${width}x${height}`);
+		// console.log(`Image dimensions: ${width}x${height}`);
 
 		return {
 			width,
