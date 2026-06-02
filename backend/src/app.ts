@@ -18,9 +18,13 @@ const app: FastifyPluginAsync<AppOptions> = async (fastify, opts): Promise<void>
 
 
 	void fastify.register(cors, {
-		// origin: [process.env.URL_FRONTEND || 'http://localhost:3000'],
-		origin: true, 
-		// credentials: true,
+		origin: [
+			'https://pictotailwiind.vercel.app', // Ton frontend en prod
+			'http://localhost:3000', // Ton frontend en local (pratique pour tester)
+		],
+		methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
+		allowedHeaders: ['Content-Type', 'Authorization'],
+		credentials: true,
 	});
 
 	
@@ -35,7 +39,7 @@ const app: FastifyPluginAsync<AppOptions> = async (fastify, opts): Promise<void>
 	void fastify.register(AutoLoad, {
 		dir: join(__dirname, 'routes'),
 		options : {
-			// // prefix: '/api', 
+			prefix: '/api', 
 			...opts,
 		},
 	});
